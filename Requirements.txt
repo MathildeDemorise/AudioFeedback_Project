@@ -1,0 +1,6 @@
+numpy==1.24.3
+opencv-python==4.7.0.68
+pandas~=2.0.1
+matplotlib~=3.7.1
+mediapipe~=0.10.0
+customtkinter~=5.2.0
