@@ -7,8 +7,8 @@ import cv2
 import mediapipe as mp
 import pyttsx3
 import time
-import pygame
 import pandas as pd
+import speech_recognition as sr
 
 
 mp_drawing = mp.solutions.drawing_utils
@@ -114,48 +114,48 @@ def start_training():
         if name_exercise == instructions.iloc[i,0] :
             corresponding_angle = instructions.iloc[0,1]
             corresponding_commentary = instructions.iloc[0,2]
-    
-    video = cv2.VideoCapture(path_exercise)
 
+    video = cv2.VideoCapture(path_exercise)
+        
     def show_video(cap, new_width, new_height):
 
         if not hasattr(show_video, 'canvas1_created'):
-            
+                
             show_video.canvas1 = ctk.CTkCanvas(frame_left,  width =int(0.45*screen_width), height = int(0.5*screen_height))
             show_video.canvas1.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
             show_video.canvas1_created = True
-    
+        
         while cap.isOpened():
             ret, frame = cap.read()
-        
-            # Vérifier si la lecture de l'image est terminée
+            
+                # Vérifier si la lecture de l'image est terminée
             if not ret:
                 break
-            
+                
             resized_frame = cv2.resize(frame, (new_width, new_height))
 
-                # Afficher l'image
+                    # Afficher l'image
             photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)))
             show_video.canvas1.create_image(0, 0, image=photo, anchor=tk.NW)
             show_video.canvas1.photo = photo
-                
+                    
             window.update()
-                
+                    
             if state == 'off': 
                 break
 
         cap.release()
         cv2.destroyAllWindows()
-
+        
     # show_video(video, int(0.67*screen_width), int(0.81*screen_height))
-    
+
     def text_to_speech(text):
         engine = pyttsx3.init()
         engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
         engine.say(text)
         engine.runAndWait()
 
-    text_to_speech(corresponding_commentary)
+    # text_to_speech(corresponding_commentary)
 
     def calculate_angle(a,b,c):
         a = np.array(a) # First
@@ -233,6 +233,30 @@ def start_training():
                                         corner_coords,  
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
+                    recognizer = sr.Recognizer()
+                    with sr.Microphone() as source:
+                        print("Say feedback to start...")
+                        audio = recognizer.listen(source)
+
+                    try:
+                        text = recognizer.recognize_google(audio, language="en-US")
+                        print(text)
+                        if text == 'yes':
+                            if (angle > 85 and angle < 95) : 
+                                text_to_speech('You are in the good position')
+                            else : 
+                                diff = angle-90
+
+                                if diff > 0 : sign = 'down'
+                                else : sign = 'up'
+
+                                text_to_speech('You have to move ' + str(abs(diff)) + 'degree' + sign)
+                        else:
+                            print("Keyword is not detected.")
+                    except sr.UnknownValueError:
+                        print("Could not understand audio")
+                    except sr.RequestError as e:
+                        print("Error requesting results: {0}".format(e))
                     
                 except:
                     pass
