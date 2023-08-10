@@ -8,16 +8,17 @@ def text_to_speech(text):
     engine.runAndWait()
 
 angle_test= 140
+
 def speech_to_text():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Say YES to start...")
+        print("Say FEEDBACK to start...")
         audio = recognizer.listen(source)
 
     try:
-        text = recognizer.recognize_google(audio, language="en-US")
+        text = recognizer.recognize_google(audio, language="fr-FR")
         print(text)
-        if text == 'yes':
+        if text == 'feedback':
             if (angle_test > 85 and angle_test < 95) :
                 text_to_speech('You are in the good position')
             else :
