@@ -2,181 +2,209 @@ import tkinter as tk
 from tkinter import filedialog
 import customtkinter as ctk
 from PIL import Image, ImageTk
-import numpy as np
 import cv2
 import mediapipe as mp
 import pyttsx3
-import time
 import pandas as pd
-import speech_recognition as sr
-
+import numpy as np
+import threading
+import time
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 
-''' 
-This interface is the one I use to try to have a feedback on live
-'''
+# ''' 
+# This interface is the one I use to try to have a feedback on live
+# '''
 
-ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+class ExerciseApp:
 
-window = ctk.CTk()
-window.title("On live")
+    def __init__(self, window):
 
-# Configuration the size of the interface to match the screen
-screen_width = window.winfo_screenwidth()
-screen_height = int(0.9*window.winfo_screenheight()) 
-desired_height = int(screen_height*0.9)
-window.geometry(f"{screen_width}x{screen_height}+{0}+{0}")
+        # Create the window with the right size
 
-#Create frames
+        ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
+        ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
-frame_top = ctk.CTkFrame(window, width=int(0.9*screen_width), height=int(0.2*screen_height))
-frame_top.grid(row = 0, column = 0, sticky="nsew", padx=20, pady=20)
-frame_top.grid_propagate(False)
+        self.window = window
+        self.window.title("Exercise App On Live")
 
-frame_middle = ctk.CTkFrame(window, width =int(0.9*screen_width), height = int(0.6*screen_height))
-frame_middle.grid(row=1, column = 0, sticky = 'nsew', padx = 20, pady = 20)
-frame_middle.grid_propagate(False)
+        self.screen_width = window.winfo_screenwidth()
+        self.screen_height = int(0.9*window.winfo_screenheight()) 
+        self.desired_height = int(self.screen_height*0.9)
+        self.window.geometry(f"{self.screen_width}x{self.screen_height}+{0}+{0}")
 
-frame_bottom = ctk.CTkFrame(window, width =int(0.9*screen_width), height = int(0.1*screen_height))
-frame_bottom.grid(row=2, column = 0, sticky = 'nsew', padx = 20, pady = 20)
-frame_bottom.grid_propagate(False)
+        # Create frames
 
-frame_left = ctk.CTkFrame(frame_middle, width =int(0.45*screen_width), height = int(0.6*screen_height))
-frame_left.grid(row=0, column = 0, sticky = 'nsew', padx = 20, pady = 20)
-frame_left.grid_propagate(False)
+        self.frame_top = ctk.CTkFrame(window, width=int(0.9*self.screen_width), height=int(0.2*self.screen_height))
+        self.frame_top.grid(row = 0, column = 0, sticky="nsew", padx=20, pady=20)
+        self.frame_top.grid_propagate(False)
 
-frame_right = ctk.CTkFrame(frame_middle, width =int(0.45*screen_width), height = int(0.6*screen_height))
-frame_right.grid(row=0, column = 1, sticky = 'nsew', padx = 20, pady = 20)
-frame_right.grid_propagate(False)
+        self.frame_middle = ctk.CTkFrame(window, width =int(0.9*self.screen_width), height = int(0.6*self.screen_height))
+        self.frame_middle.grid(row=1, column = 0, sticky = 'nsew', padx = 20, pady = 20)
+        self.frame_middle.grid_propagate(False)
 
-# Centered the frame
+        self.frame_bottom = ctk.CTkFrame(window, width =int(0.9*self.screen_width), height = int(0.1*self.screen_height))
+        self.frame_bottom.grid(row=2, column = 0, sticky = 'nsew', padx = 20, pady = 20)
+        self.frame_bottom.grid_propagate(False)
 
-window.columnconfigure(0, weight=1)
-window.rowconfigure(0, weight=1)
-window.rowconfigure(1, weight=1)
-window.rowconfigure(2, weight=1)
+        self.frame_left = ctk.CTkFrame(self.frame_middle, width =int(0.45*self.screen_width), height = int(0.6*self.screen_height))
+        self.frame_left.grid(row=0, column = 0, sticky = 'nsew', padx = 20, pady = 20)
+        self.frame_left.grid_propagate(False)
 
-frame_top.columnconfigure(0, weight = 1)
-frame_top.columnconfigure(1, weight=1)
-frame_top.rowconfigure(0, weight = 1)
+        self.frame_right = ctk.CTkFrame(self.frame_middle, width =int(0.45*self.screen_width), height = int(0.6*self.screen_height))
+        self.frame_right.grid(row=0, column = 1, sticky = 'nsew', padx = 20, pady = 20)
+        self.frame_right.grid_propagate(False)
 
-frame_middle.rowconfigure(0, weight = 1)
+        # Centered the frame
 
-frame_bottom.rowconfigure(0, weight = 1)
-frame_bottom.columnconfigure(0, weight = 1)
+        self.window.columnconfigure(0, weight=1)
+        self.window.rowconfigure(0, weight=1)
+        self.window.rowconfigure(1, weight=1)
+        self.window.rowconfigure(2, weight=1)
 
-frame_left.columnconfigure(0, weight=1)
-frame_left.rowconfigure(0, weight=1)
+        self.frame_top.columnconfigure(0, weight = 1)
+        self.frame_top.columnconfigure(1, weight=1)
+        self.frame_top.rowconfigure(0, weight = 1)
 
-frame_right.columnconfigure(0, weight=1)
-frame_right.rowconfigure(0, weight=1)
+        self.frame_middle.rowconfigure(0, weight = 1)
 
-# Global variables
+        self.frame_bottom.rowconfigure(0, weight = 1)
+        self.frame_bottom.columnconfigure(0, weight = 1)
 
-path_exercise = ""
-name_exercise = ""
-list_of_data_angle = []
-state = 'on'
+        self.frame_left.columnconfigure(0, weight=1)
+        self.frame_left.rowconfigure(0, weight=1)
 
-# Usefull files and data
+        self.frame_right.columnconfigure(0, weight=1)
+        self.frame_right.rowconfigure(0, weight=1)
 
-instructions = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Exercices')
-sheet_angle = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Angle')
+        # Global variables
+        self.path_exercise = ""
+        self.name_exercise = ""
 
-row_1, _ = instructions.shape
-row_2, _ = sheet_angle.shape
+        self.list_of_data_angle = []
 
-for i in range(0, row_2):
-    list_of_data_angle.append(sheet_angle.iloc[i,0])
-    
+        self.corresponding_angle = ""
+        self.corresponding_commentary = ""
 
-# Create functions
+        self.selected_joint1 = []
+        self.selected_joint2 = []
+        self.selected_joint3 = []
 
-def select_exercise():
+        self.state = 'on'
 
-    global path_exercise
-    global name_exercise
+        # Usefull files and data
+        self.instructions = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Exercices')
+        self.sheet_angle = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Angle')
 
-    path_exercise = filedialog.askopenfilename()
-    path_exercise_split = path_exercise.split("/")
-    name_video = path_exercise_split[len(path_exercise_split) - 1]
-    name_video_split = name_video.split("_")
-    name_exercise = name_video_split[0]
-    select_exercise_button.configure(text = name_exercise)
+        self.row_1, _ = self.instructions.shape
+        self.row_2, _ = self.sheet_angle.shape
 
-def start_training():
+        for i in range(0, self.row_2):
+            self.list_of_data_angle.append(self.sheet_angle.iloc[i, 0])
 
-    for i in range (0, row_1):
-        if name_exercise == instructions.iloc[i,0] :
-            corresponding_angle = instructions.iloc[0,1]
-            corresponding_commentary = instructions.iloc[0,2]
 
-    video = cv2.VideoCapture(path_exercise)
-        
-    def show_video(cap, new_width, new_height):
+        # Create button
 
-        if not hasattr(show_video, 'canvas1_created'):
+        self.select_exercise_button = ctk.CTkButton(self.frame_top, text="Select the exercise's video", command = self.select_exercise, width= 300, height = 50, anchor='center', font = ("Helvetica", 16, "bold"))
+        self.select_exercise_button.grid(row=0, column=0,  padx=20, pady=(10, 10))
+
+        self.start_exercice = ctk.CTkButton(self.frame_top, text="Start the exercise", command = self.start_training, width= 300, height = 50, anchor='center', font = ("Helvetica", 16, "bold"))
+        self.start_exercice.grid(row=0, column=1,  padx=20, pady=(10, 10))
+
+        self.close_webcam_button = ctk.CTkButton(self.frame_bottom, text="Stop the session", command = self.close_webcam_or_video)
+        self.close_webcam_button.grid(row=3, column=0, padx=20, pady=(10, 10))
+
+        self.label = ctk.CTkLabel(self.frame_right, text="")
+        self.label.grid(row=0, column=0, padx=20, pady=20)
+
+        self.window.protocol("WM_DELETE_WINDOW", self.close_window)  # Bind the close function
+
+    # Create functions
+
+    def select_exercise(self):
+
+        self.path_exercise = filedialog.askopenfilename()
+        path_exercise_split = self.path_exercise.split("/")
+        name_video = path_exercise_split[len(path_exercise_split) - 1]
+        name_video_split = name_video.split("_")
+        self.name_exercise = name_video_split[0]
+        self.select_exercise_button.configure(text = self.name_exercise)
+
+        for i in range (0, self.row_1):
+            if self.name_exercise == self.instructions.iloc[i,0] :
+                self.corresponding_angle = self.instructions.iloc[0,1]
+                self.corresponding_commentary = self.instructions.iloc[0,2]
+
+        file = self.sheet_angle
+                            
+        for i,angle in enumerate(self.list_of_data_angle):
                 
-            show_video.canvas1 = ctk.CTkCanvas(frame_left,  width =int(0.45*screen_width), height = int(0.5*screen_height))
-            show_video.canvas1.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
-            show_video.canvas1_created = True
+            if self.corresponding_angle==angle:
+                self.selected_joint1=file.iloc[i,1]
+                self.selected_joint2=file.iloc[i,2]
+                self.selected_joint3=file.iloc[i,3]
+                    
+    def start_training(self):
+
+        video_thread = threading.Thread(target=self.show_video)
+        audio_thread = threading.Thread(target=self.text_to_speech)
+        webcam_thread = threading.Thread(target=self.show_angle_on_live)
+
+        audio_thread.start()
+        video_thread.start()
+        webcam_thread.start()
+        
+        return
+        
+    def show_video(self):
+        cap = cv2.VideoCapture(self.path_exercise)
+
+        if not hasattr(self, 'canvas1_created'):
+            self.canvas1 = ctk.CTkCanvas(self.frame_left, width=int(0.45 * self.screen_width), height=int(0.5 * self.screen_height))
+            self.canvas1.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
+            self.canvas1_created = True
         
         while cap.isOpened():
             ret, frame = cap.read()
-            
-                # Vérifier si la lecture de l'image est terminée
+
+            # Vérifier si la lecture de l'image est terminée
             if not ret:
                 break
-                
-            resized_frame = cv2.resize(frame, (new_width, new_height))
 
-                    # Afficher l'image
+            resized_frame = cv2.resize(frame, (int(0.67 * self.screen_width), int(0.81 * self.screen_height)))
+
+            # Afficher l'image
             photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)))
-            show_video.canvas1.create_image(0, 0, image=photo, anchor=tk.NW)
-            show_video.canvas1.photo = photo
+            self.canvas1.create_image(0, 0, image=photo, anchor=tk.NW)
+            self.canvas1.photo = photo
+
+            self.window.update()  # Use self.window.update() to update the Tkinter window
                     
-            window.update()
-                    
-            if state == 'off': 
+            if self.state == 'off': 
                 break
 
         cap.release()
         cv2.destroyAllWindows()
-        
-    # show_video(video, int(0.67*screen_width), int(0.81*screen_height))
 
-    def text_to_speech(text):
+
+    def text_to_speech(self):
+        
         engine = pyttsx3.init()
         engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
-        engine.say(text)
+        engine.say(self.corresponding_commentary)
         engine.runAndWait()
+  
+    def show_angle_on_live(self):
 
-    # text_to_speech(corresponding_commentary)
-
-    def calculate_angle(a,b,c):
-        a = np.array(a) # First
-        b = np.array(b) # Mid
-        c = np.array(c) # End
+        cap = cv2.VideoCapture(0)
         
-        radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-        angle = np.abs(radians*180.0/np.pi)
-        
-        if angle >180.0:
-            angle = 360-angle
+        if not hasattr(self, 'canvas2_created'):
             
-        return angle 
-
-    def show_angle_on_live(cap, index1, index2, index3):
-
-        if not hasattr(show_angle_on_live, 'canvas2_created'):
-            
-            show_angle_on_live.canvas2 = ctk.CTkCanvas(frame_right, width =int(0.45*screen_width), height = int(0.5*screen_height))
-            show_angle_on_live.canvas2.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
-            show_angle_on_live.canvas2_created = True
+            self.canvas2 = ctk.CTkCanvas(self.frame_right, width =int(0.45*self.screen_width), height = int(0.5*self.screen_height))
+            self.canvas2.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
+            self.canvas2_created = True
 
         ## Setup mediapipe instance
         with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
@@ -184,7 +212,7 @@ def start_training():
                 _, frame = cap.read()
 
                 flipped_frame = cv2.flip(frame, 1)
-                resized_frame = cv2.resize(flipped_frame, (int(0.67*screen_width), int(0.81*screen_height)))
+                resized_frame = cv2.resize(flipped_frame, (int(0.67*self.screen_width), int(0.81*self.screen_height)))
                 
                 # Recolor image to RGB
                 
@@ -203,12 +231,22 @@ def start_training():
                     landmarks = results.pose_landmarks.landmark
                     
                     # Get coordinates
-                    point1 = [landmarks[index1].x, landmarks[index1].y]
-                    point2 = [landmarks[index2].x, landmarks[index2].y]
-                    point3 = [landmarks[index3].x, landmarks[index3].y]
+                    point1 = [landmarks[self.selected_joint1].x, landmarks[self.selected_joint1].y]
+                    point2 = [landmarks[self.selected_joint2].x, landmarks[self.selected_joint2].y]
+                    point3 = [landmarks[self.selected_joint3].x, landmarks[self.selected_joint3].y]
                     
-                    # Calculate angle
-                    angle = calculate_angle(point1, point2, point3)
+                    a = np.array(point1) # First
+                    b = np.array(point2) # Mid
+                    c = np.array(point3) # End
+                    
+                    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+                    angle = np.abs(radians*180.0/np.pi)
+                    
+                    if angle >180.0:
+                        angle = 360-angle
+                    
+                    # # Calculate angle
+                    # angle = calculate_angle(point1, point2, point3)
                     angle_to_show = round(angle,1)
 
                     # Coordinate of the corner
@@ -223,7 +261,7 @@ def start_training():
                     # Visualize angle
                     
                     if (angle > 85 and angle < 95) : 
-                        # text_to_speech("You reach 90 degree")
+
                         cv2.putText(image, str(angle_to_show), 
                                         corner_coords,  
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
@@ -233,31 +271,6 @@ def start_training():
                                         corner_coords,  
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
-                    recognizer = sr.Recognizer()
-                    with sr.Microphone() as source:
-                        print("Say feedback to start...")
-                        audio = recognizer.listen(source)
-
-                    try:
-                        text = recognizer.recognize_google(audio, language="en-US")
-                        print(text)
-                        if text == 'yes':
-                            if (angle > 85 and angle < 95) : 
-                                text_to_speech('You are in the good position')
-                            else : 
-                                diff = angle-90
-
-                                if diff > 0 : sign = 'down'
-                                else : sign = 'up'
-
-                                text_to_speech('You have to move ' + str(abs(diff)) + 'degree' + sign)
-                        else:
-                            print("Keyword is not detected.")
-                    except sr.UnknownValueError:
-                        print("Could not understand audio")
-                    except sr.RequestError as e:
-                        print("Error requesting results: {0}".format(e))
-                    
                 except:
                     pass
                 
@@ -270,66 +283,32 @@ def start_training():
 
 
                 photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
-                show_angle_on_live.canvas2.create_image(0, 0, image=photo, anchor=tk.NW)
-                show_angle_on_live.canvas2.photo = photo
+                self.canvas2.create_image(0, 0, image=photo, anchor=tk.NW)
+                self.canvas2.photo = photo
 
                 window.update()
 
-                if state=='off':
+                if self.state=='off':
                     break
 
 
             cap.release()
             cv2.destroyAllWindows()
-
-    def get_points_of_interest(file):
-
-        selected_joint1 = []
-        selected_joint2 = []
-        selected_joint3 = []
-                        
-        for i,angle in enumerate(list_of_data_angle):
-            
-            if corresponding_angle==angle:
-                selected_joint1=file.iloc[i,1]
-                selected_joint2=file.iloc[i,2]
-                selected_joint3=file.iloc[i,3]
-
-        return selected_joint1, selected_joint2, selected_joint3
-                
-    angle1, angle2, angle3 = get_points_of_interest(sheet_angle)
-
-    show_angle_on_live(cv2.VideoCapture(0), angle1, angle2, angle3)
-
-def close_webcam_or_video():
-    global state
-    if state == 'on' :
-        state = 'off'
-        return state
-    if state == 'off' :
-        state = 'on'
-        return state
     
-# Create button
+    def close_webcam_or_video(self):
+        if self.state == 'on' :
+            self.state = 'off'
+            return self.state
+        if self.state == 'off' :
+            self.state = 'on'
+            return self.state
+    
+    def close_window(self):
+        # Perform any cleanup tasks here before closing the window
+        self.window.destroy()
 
-select_exercise_button = ctk.CTkButton(frame_top, text="Select the exercise's video", command=select_exercise, width= 300, height = 50, anchor='center', font = ("Helvetica", 16, "bold"))
-select_exercise_button.grid(row=0, column=0,  padx=20, pady=(10, 10))
 
-start_exercice = ctk.CTkButton(frame_top, text="Start the exercise", command=start_training, width= 300, height = 50, anchor='center', font = ("Helvetica", 16, "bold"))
-start_exercice.grid(row=0, column=1,  padx=20, pady=(10, 10))
-
-close_webcam_button = ctk.CTkButton(frame_bottom, text="Stop the session", command=close_webcam_or_video)
-close_webcam_button.grid(row=3, column=0, padx=20, pady=(10, 10))
-
-label = ctk.CTkLabel(frame_right, text="")
-label.grid(row=0, column=0, padx=20, pady=20)
-
-# Close the window when we click on the cross
-
-def close_window():
-    window.destroy()
-    window.quit()
-window.protocol("WM_DELETE_WINDOW", close_window)
-
-# Execution of the main loop
-window.mainloop()
+if __name__ == "__main__":
+    window = ctk.CTk()
+    app = ExerciseApp(window)
+    window.mainloop()
