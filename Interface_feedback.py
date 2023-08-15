@@ -8,15 +8,16 @@ import pyttsx3
 import pandas as pd
 import numpy as np
 import threading
-import time
+import speech_recognition as sr
+import pyttsx3
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 
-# ''' 
-# This interface is the one I use to try to have a feedback on live
-# '''
+''' 
+This interface is the one I use to try to have a feedback on live
+'''
 
 class ExerciseApp:
 
@@ -94,6 +95,8 @@ class ExerciseApp:
 
         self.state = 'on'
 
+        self.angle_to_show = ''
+
         # Usefull files and data
         self.instructions = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Exercices')
         self.sheet_angle = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Angle')
@@ -116,13 +119,58 @@ class ExerciseApp:
         self.close_webcam_button = ctk.CTkButton(self.frame_bottom, text="Stop the session", command = self.close_webcam_or_video)
         self.close_webcam_button.grid(row=3, column=0, padx=20, pady=(10, 10))
 
-        self.label = ctk.CTkLabel(self.frame_right, text="")
+        self.label = ctk.CTkLabel(self.frame_bottom, text="")
         self.label.grid(row=0, column=0, padx=20, pady=20)
 
         self.window.protocol("WM_DELETE_WINDOW", self.close_window)  # Bind the close function
 
+        self.feedback_detected = False
+        self.recognizer = sr.Recognizer()
+
+        self.listening_thread = threading.Thread(target=self.listen_for_feedback)
+        self.listening_thread.daemon = True
+        self.listening_thread.start()
+
     # Create functions
 
+    def text_to_speech(self, text):  
+        engine = pyttsx3.init()
+        engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
+        engine.say(text)
+        engine.runAndWait()
+
+    def listen_for_feedback(self):
+        with sr.Microphone() as source:
+            while True:
+                try:
+                    audio = self.recognizer.listen(source, timeout=5)
+                    self.text = self.recognizer.recognize_google(audio, language="fr-FR")
+
+                    print("You said :", self.text)
+                    self.label.configure(self.text)
+
+                    if "feedback" in self.text.lower():
+                        self.feedback_detected = True
+                        angle_to_say = round(self.angle_to_show,0)
+                        min = 0.8 * self.corresponding_value
+                        max = 1.2 * self.corresponding_value
+                        if (angle_to_say > min and angle_to_say < max) :
+                            self.text_to_speech('You are in the good position')
+                        else :
+                            diff = angle_to_say-90
+
+                            if diff > 0 : sign = 'down'
+                            else : sign = 'up'
+
+                            self.text_to_speech( 'You have to move ' + str(abs(diff)) + 'degree' + sign)
+                        
+                except sr.WaitTimeoutError:
+                    pass
+                except sr.UnknownValueError:
+                    pass
+                except sr.RequestError as e:
+                    pass
+                         
     def select_exercise(self):
 
         self.path_exercise = filedialog.askopenfilename()
@@ -132,10 +180,13 @@ class ExerciseApp:
         self.name_exercise = name_video_split[0]
         self.select_exercise_button.configure(text = self.name_exercise)
 
+        print(self.name_exercise)
+
         for i in range (0, self.row_1):
             if self.name_exercise == self.instructions.iloc[i,0] :
-                self.corresponding_angle = self.instructions.iloc[0,1]
-                self.corresponding_commentary = self.instructions.iloc[0,2]
+                self.corresponding_angle = self.instructions.iloc[i,1]
+                self.corresponding_value = self.instructions.iloc[i,2]
+                self.corresponding_commentary = self.instructions.iloc[i,3]
 
         file = self.sheet_angle
                             
@@ -149,7 +200,7 @@ class ExerciseApp:
     def start_training(self):
 
         video_thread = threading.Thread(target=self.show_video)
-        audio_thread = threading.Thread(target=self.text_to_speech)
+        audio_thread = threading.Thread(target=self.text_to_speech_commentary)
         webcam_thread = threading.Thread(target=self.show_angle_on_live)
 
         audio_thread.start()
@@ -166,6 +217,7 @@ class ExerciseApp:
             self.canvas1.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew")
             self.canvas1_created = True
         
+
         while cap.isOpened():
             ret, frame = cap.read()
 
@@ -180,16 +232,15 @@ class ExerciseApp:
             self.canvas1.create_image(0, 0, image=photo, anchor=tk.NW)
             self.canvas1.photo = photo
 
-            self.window.update()  # Use self.window.update() to update the Tkinter window
-                    
-            if self.state == 'off': 
+            self.window.update()  # Utilisez self.window.update() pour mettre à jour la fenêtre Tkinter
+
+            if self.state == 'off':
                 break
 
         cap.release()
         cv2.destroyAllWindows()
 
-
-    def text_to_speech(self):
+    def text_to_speech_commentary(self):
         
         engine = pyttsx3.init()
         engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
@@ -247,7 +298,7 @@ class ExerciseApp:
                     
                     # # Calculate angle
                     # angle = calculate_angle(point1, point2, point3)
-                    angle_to_show = round(angle,1)
+                    self.angle_to_show = round(angle,1)
 
                     # Coordinate of the corner
                     corner_coords = (int(image.shape[1] * 0.8), int(image.shape[0] * 0.15))
@@ -259,15 +310,18 @@ class ExerciseApp:
                     cv2.rectangle(image, background_start, background_end, (255,255,255), -1)
                     
                     # Visualize angle
-                    
-                    if (angle > 85 and angle < 95) : 
 
-                        cv2.putText(image, str(angle_to_show), 
+                    min = 0.8 * self.corresponding_value
+                    max = 1.2 * self.corresponding_value
+                    
+                    if (angle > min and angle < max) : 
+
+                        cv2.putText(image, str(self.angle_to_show), 
                                         corner_coords,  
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
                         
                     else :
-                        cv2.putText(image, str(angle_to_show), 
+                        cv2.putText(image, str(self.angle_to_show), 
                                         corner_coords,  
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
@@ -306,7 +360,6 @@ class ExerciseApp:
     def close_window(self):
         # Perform any cleanup tasks here before closing the window
         self.window.destroy()
-
 
 if __name__ == "__main__":
     window = ctk.CTk()
