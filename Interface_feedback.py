@@ -72,6 +72,8 @@ class ExerciseApp:
         self.frame_middle.rowconfigure(0, weight = 1)
 
         self.frame_bottom.rowconfigure(0, weight = 1)
+        self.frame_bottom.rowconfigure(1, weight=1)
+        self.frame_bottom.columnconfigure(1, weight=1)
         self.frame_bottom.columnconfigure(0, weight = 1)
 
         self.frame_left.columnconfigure(0, weight=1)
@@ -85,9 +87,11 @@ class ExerciseApp:
         self.name_exercise = ""
 
         self.list_of_data_angle = []
+        self.names_of_exercices = []
 
         self.corresponding_angle = ""
-        self.corresponding_commentary = ""
+        self.corresponding_short_commentary = ""
+        self.corresponding_long_commentary = ""
 
         self.selected_joint1 = []
         self.selected_joint2 = []
@@ -104,6 +108,8 @@ class ExerciseApp:
         self.row_1, _ = self.instructions.shape
         self.row_2, _ = self.sheet_angle.shape
 
+        for i in range (0, self.row_1):
+            self.names_of_exercices.append(self.instructions.iloc[i,0])
         for i in range(0, self.row_2):
             self.list_of_data_angle.append(self.sheet_angle.iloc[i, 0])
 
@@ -117,10 +123,10 @@ class ExerciseApp:
         self.start_exercice.grid(row=0, column=1,  padx=20, pady=(10, 10))
 
         self.close_webcam_button = ctk.CTkButton(self.frame_bottom, text="Stop the session", command = self.close_webcam_or_video)
-        self.close_webcam_button.grid(row=3, column=0, padx=20, pady=(10, 10))
+        self.close_webcam_button.grid(row=1, column=0, padx=20, pady=(10, 10))
 
         self.label = ctk.CTkLabel(self.frame_bottom, text="")
-        self.label.grid(row=0, column=0, padx=20, pady=20)
+        self.label.grid(row=1, column=1, padx=20, pady=(10, 10))
 
         self.window.protocol("WM_DELETE_WINDOW", self.close_window)  # Bind the close function
 
@@ -147,11 +153,13 @@ class ExerciseApp:
                     self.text = self.recognizer.recognize_google(audio, language="fr-FR")
 
                     print("You said :", self.text)
-                    self.label.configure(self.text)
+                    self.label.configure(text = self.text)
 
                     if "feedback" in self.text.lower():
                         self.feedback_detected = True
+
                         angle_to_say = round(self.angle_to_show,0)
+
                         min = 0.8 * self.corresponding_value
                         max = 1.2 * self.corresponding_value
                         if (angle_to_say > min and angle_to_say < max) :
@@ -163,7 +171,16 @@ class ExerciseApp:
                             else : sign = 'up'
 
                             self.text_to_speech( 'You have to move ' + str(abs(diff)) + 'degree' + sign)
-                        
+
+                    if 'repeat' in self.text.lower():
+                        self.text_to_speech(self.corresponding_short_commentary)
+
+                    if 'more precision' in self.text.lower():
+                        self.text_to_speech(self.corresponding_long_commentary)
+                
+                    if 'stop' in self.text.lower():
+                        self.state = 'off'
+
                 except sr.WaitTimeoutError:
                     pass
                 except sr.UnknownValueError:
@@ -180,13 +197,13 @@ class ExerciseApp:
         self.name_exercise = name_video_split[0]
         self.select_exercise_button.configure(text = self.name_exercise)
 
-        print(self.name_exercise)
 
         for i in range (0, self.row_1):
             if self.name_exercise == self.instructions.iloc[i,0] :
                 self.corresponding_angle = self.instructions.iloc[i,1]
                 self.corresponding_value = self.instructions.iloc[i,2]
-                self.corresponding_commentary = self.instructions.iloc[i,3]
+                self.corresponding_short_commentary = self.instructions.iloc[i,3]
+                self.corresponding_long_commentary = self.instructions.iloc[i,4]
 
         file = self.sheet_angle
                             
@@ -244,7 +261,7 @@ class ExerciseApp:
         
         engine = pyttsx3.init()
         engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
-        engine.say(self.corresponding_commentary)
+        engine.say(self.corresponding_short_commentary)
         engine.runAndWait()
   
     def show_angle_on_live(self):
