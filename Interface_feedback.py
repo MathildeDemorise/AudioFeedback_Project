@@ -87,9 +87,14 @@ class ExerciseApp:
         self.name_exercise = ""
 
         self.list_of_data_angle = []
+        self.list_of_data_alignment = []
+        self.list_of_data_distance = []
+        self.list_of_data_parallelism = []
+        self.list_of_data_samecoordinate = []
         self.names_of_exercices = []
 
-        self.corresponding_angle = ""
+        self.corresponding_data = ""
+        self.corresponding_feature = ""
         self.corresponding_short_commentary = ""
         self.corresponding_long_commentary = ""
 
@@ -100,19 +105,42 @@ class ExerciseApp:
         self.state = 'on'
 
         self.angle_to_show = ''
+        self.ecart_to_show = ''
 
         # Usefull files and data
         self.instructions = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Exercices')
         self.sheet_angle = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Angle')
+        self.sheet_alignment = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Alignment')
+        self.sheet_distance = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Distance')
+        self.sheet_parallelism = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Parallelism')
+        self.sheet_samecoordinate = pd.read_excel("Instructions.xlsx", header=0, sheet_name='Same_coordinate')
 
         self.row_1, _ = self.instructions.shape
-        self.row_2, _ = self.sheet_angle.shape
+
+        self.row_angle, _ = self.sheet_angle.shape
+        self.row_alignment, _ = self.sheet_alignment.shape
+        self.row_distance, _ = self.sheet_distance.shape
+        self.row_parallelism, _ = self.sheet_parallelism.shape
+        self.row_samecoordinate, _ = self.sheet_samecoordinate.shape
+
 
         for i in range (0, self.row_1):
             self.names_of_exercices.append(self.instructions.iloc[i,0])
-        for i in range(0, self.row_2):
-            self.list_of_data_angle.append(self.sheet_angle.iloc[i, 0])
 
+        for i1 in range(0, self.row_angle):
+            self.list_of_data_angle.append(self.sheet_angle.iloc[i1, 0])
+
+        for i2 in range(0, self.row_alignment):
+            self.list_of_data_alignment.append(self.sheet_alignment.iloc[i2, 0])
+        
+        for i3 in range(0, self.row_distance):
+            self.list_of_data_distance.append(self.sheet_distance.iloc[i3, 0])
+
+        for i4 in range(0, self.row_parallelism):
+            self.list_of_data_parallelism.append(self.sheet_parallelism.iloc[i4, 0])
+
+        for i5 in range(0, self.row_samecoordinate):
+            self.list_of_data_samecoordinate.append(self.sheet_samecoordinate.iloc[i5,0])
 
         # Create button
 
@@ -158,20 +186,33 @@ class ExerciseApp:
                     if "feedback" in self.text.lower():
                         self.feedback_detected = True
 
-                        angle_to_say = round(self.angle_to_show,0)
+                        if self.corresponding_feature == 'Angle':
+                            angle_to_say = round(self.angle_to_show,0)
 
-                        min = 0.8 * self.corresponding_value
-                        max = 1.2 * self.corresponding_value
-                        if (angle_to_say > min and angle_to_say < max) :
-                            self.text_to_speech('You are in the good position')
-                        else :
-                            diff = angle_to_say-90
+                            min = 0.8 * self.corresponding_value
+                            max = 1.2 * self.corresponding_value
+                            if (angle_to_say > min and angle_to_say < max) :
+                                self.text_to_speech('You are in the good position')
+                            else :
+                                diff = angle_to_say-90
 
-                            if diff > 0 : sign = 'down'
-                            else : sign = 'up'
+                                if diff > 0 : sign = 'down'
+                                else : sign = 'up'
 
-                            self.text_to_speech( 'You have to move ' + str(abs(diff)) + 'degree' + sign)
+                                self.text_to_speech( 'You have to move ' + str(abs(diff)) + 'degree' + sign)
 
+                        if self.corresponding_feature == 'Distance' :
+
+                            if self.ecart_to_show > 5 :
+                                self.text_to_speech('You are not straight, you have to move to the right')
+
+                            if self.ecart_to_show < -5 :
+                                self.text_to_speech('You are not straight, you have to move to the left')
+
+                            else :
+                                self.text_to_speech('You are straight, stay in this position')
+
+                    
                     if 'repeat' in self.text.lower():
                         self.text_to_speech(self.corresponding_short_commentary)
 
@@ -200,25 +241,47 @@ class ExerciseApp:
 
         for i in range (0, self.row_1):
             if self.name_exercise == self.instructions.iloc[i,0] :
-                self.corresponding_angle = self.instructions.iloc[i,1]
-                self.corresponding_value = self.instructions.iloc[i,2]
-                self.corresponding_short_commentary = self.instructions.iloc[i,3]
-                self.corresponding_long_commentary = self.instructions.iloc[i,4]
-
-        file = self.sheet_angle
-                            
-        for i,angle in enumerate(self.list_of_data_angle):
+                self.corresponding_short_commentary = self.instructions.iloc[i,1]
+                self.corresponding_long_commentary = self.instructions.iloc[i,2]
+                self.corresponding_feature = self.instructions.iloc[i,3]
+                self.corresponding_data = self.instructions.iloc[i,4]
+                self.corresponding_value = self.instructions.iloc[i,5]
                 
-            if self.corresponding_angle==angle:
-                self.selected_joint1=file.iloc[i,1]
-                self.selected_joint2=file.iloc[i,2]
-                self.selected_joint3=file.iloc[i,3]
+
+        if self.corresponding_feature == 'Angle':
+                            
+            for i,angle in enumerate(self.list_of_data_angle):
                     
+                if self.corresponding_data==angle:
+                    self.selected_joint1=self.sheet_angle.iloc[i,1]
+                    self.selected_joint2=self.sheet_angle.iloc[i,2]
+                    self.selected_joint3=self.sheet_angle.iloc[i,3]
+
+        if self.corresponding_feature == 'Distance':
+
+            for i,data in enumerate(self.list_of_data_distance):
+                    
+                if self.corresponding_data==data:
+                    self.selected_joint1=int(self.sheet_distance.iloc[i,1])
+                    self.selected_joint2=int(self.sheet_distance.iloc[i,2])
+                    self.selected_joint3=int(self.sheet_distance.iloc[i,3])
+                    self.selected_joint4 = int(self.sheet_distance.iloc[i,4])
+        
+        if self.corresponding_feature == 'Parallelism':
+
+            for i,data in enumerate(self.list_of_data_parallelism):
+                    
+                if self.corresponding_data==data:
+                    self.selected_joint1=int(self.sheet_parallelism.iloc[i,1])
+                    self.selected_joint2=int(self.sheet_parallelism.iloc[i,2])
+                    self.selected_joint3=int(self.sheet_parallelism.iloc[i,3])
+                    self.selected_joint4 = int(self.sheet_parallelism.iloc[i,4])       
+
     def start_training(self):
 
         video_thread = threading.Thread(target=self.show_video)
         audio_thread = threading.Thread(target=self.text_to_speech_commentary)
-        webcam_thread = threading.Thread(target=self.show_angle_on_live)
+        webcam_thread = threading.Thread(target=self.show_feature_on_live)
 
         audio_thread.start()
         video_thread.start()
@@ -264,7 +327,7 @@ class ExerciseApp:
         engine.say(self.corresponding_short_commentary)
         engine.runAndWait()
   
-    def show_angle_on_live(self):
+    def show_feature_on_live(self):
 
         cap = cv2.VideoCapture(0)
         
@@ -297,51 +360,134 @@ class ExerciseApp:
                 # Extract landmarks
                 try:
                     landmarks = results.pose_landmarks.landmark
-                    
-                    # Get coordinates
-                    point1 = [landmarks[self.selected_joint1].x, landmarks[self.selected_joint1].y]
-                    point2 = [landmarks[self.selected_joint2].x, landmarks[self.selected_joint2].y]
-                    point3 = [landmarks[self.selected_joint3].x, landmarks[self.selected_joint3].y]
-                    
-                    a = np.array(point1) # First
-                    b = np.array(point2) # Mid
-                    c = np.array(point3) # End
-                    
-                    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-                    angle = np.abs(radians*180.0/np.pi)
-                    
-                    if angle >180.0:
-                        angle = 360-angle
-                    
-                    # # Calculate angle
-                    # angle = calculate_angle(point1, point2, point3)
-                    self.angle_to_show = round(angle,1)
 
-                    # Coordinate of the corner
-                    corner_coords = (int(image.shape[1] * 0.8), int(image.shape[0] * 0.15))
-                    (text_width, text_height), _ = cv2.getTextSize(str(angle), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-                    background_start = (corner_coords[0] - 5, corner_coords[1] - text_height - 5)
-                    background_end = (corner_coords[0] + text_width + 5, corner_coords[1] + 5)
-
-                    # Draw the background
-                    cv2.rectangle(image, background_start, background_end, (255,255,255), -1)
+                    if self.corresponding_feature == 'Angle':
                     
-                    # Visualize angle
-
-                    min = 0.8 * self.corresponding_value
-                    max = 1.2 * self.corresponding_value
-                    
-                    if (angle > min and angle < max) : 
-
-                        cv2.putText(image, str(self.angle_to_show), 
-                                        corner_coords,  
-                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                        # Get coordinates
+                        point1 = [landmarks[self.selected_joint1].x, landmarks[self.selected_joint1].y]
+                        point2 = [landmarks[self.selected_joint2].x, landmarks[self.selected_joint2].y]
+                        point3 = [landmarks[self.selected_joint3].x, landmarks[self.selected_joint3].y]
                         
-                    else :
-                        cv2.putText(image, str(self.angle_to_show), 
-                                        corner_coords,  
-                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                        a = np.array(point1) # First
+                        b = np.array(point2) # Mid
+                        c = np.array(point3) # End
+                        
+                        radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+                        angle = np.abs(radians*180.0/np.pi)
+                        
+                        if angle >180.0:
+                            angle = 360-angle
+                        
+                        # # Calculate angle
+                        
+                        self.angle_to_show = round(angle,1)
 
+                        # Coordinate of the corner
+                        corner_coords = (int(image.shape[1] * 0.8), int(image.shape[0] * 0.15))
+                        (text_width, text_height), _ = cv2.getTextSize(str(angle), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+                        background_start = (corner_coords[0] - 5, corner_coords[1] - text_height - 5)
+                        background_end = (corner_coords[0] + text_width + 5, corner_coords[1] + 5)
+
+                        # Draw the background
+                        cv2.rectangle(image, background_start, background_end, (255,255,255), -1)
+                        
+                        # Visualize angle
+
+                        min = 0.8 * self.corresponding_value
+                        max = 1.2 * self.corresponding_value
+                        
+                        if (angle > min and angle < max) : 
+
+                            cv2.putText(image, str(self.angle_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                            
+                        else :
+                            cv2.putText(image, str(self.angle_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+                    if self.corresponding_feature == 'Distance':
+
+                        point1 = [landmarks[self.selected_joint1].x, landmarks[self.selected_joint1].y]
+                        point2 = [landmarks[self.selected_joint2].x, landmarks[self.selected_joint2].y]
+                        point3 = [landmarks[self.selected_joint3].x, landmarks[self.selected_joint3].y]
+                        point4 = [landmarks[self.selected_joint4].x, landmarks[self.selected_joint4].y] 
+
+                        a = np.array(point1) 
+                        b = np.array(point2) 
+                        c = np.array(point3)
+                        d = np.array(point4)
+
+                        AB_val = np.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+                        CD_val = np.sqrt((d[0] - c[0]) ** 2 + (d[1] - c[1]) ** 2)
+
+                        # We calculate the pourcentage of difference
+                        avg = (AB_val + CD_val) / 2
+                        ecart_val = (AB_val - CD_val) * 100 / avg 
+                        self.ecart_to_show = round(ecart_val,1)
+
+                        # Coordinate of the corner
+                        corner_coords = (int(image.shape[1] * 0.8), int(image.shape[0] * 0.15))
+                        (text_width, text_height), _ = cv2.getTextSize(str(ecart_val), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+                        background_start = (corner_coords[0] - 5, corner_coords[1] - text_height - 5)
+                        background_end = (corner_coords[0] + text_width + 5, corner_coords[1] + 5)
+
+                        # Draw the background
+                        cv2.rectangle(image, background_start, background_end, (255,255,255), -1)
+
+                        if (ecart_val > 0 and ecart_val < 5) : 
+
+                            cv2.putText(image, str(self.ecart_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                            
+                        else :
+                            cv2.putText(image, str(self.ecart_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                                    
+                    if self.corresponding_feature == 'Parallelism':
+
+                        point1 = [landmarks[self.selected_joint1].x, landmarks[self.selected_joint1].y]
+                        point2 = [landmarks[self.selected_joint2].x, landmarks[self.selected_joint2].y]
+                        point3 = [landmarks[self.selected_joint3].x, landmarks[self.selected_joint3].y]
+                        point4 = [landmarks[self.selected_joint4].x, landmarks[self.selected_joint4].y] 
+
+                        a = np.array(point1) 
+                        b = np.array(point2) 
+                        c = np.array(point3)
+                        d = np.array(point4)
+
+                        AB_slope = (b[1] - a[1]) / (b[0] - a[0])
+                        CD_slope = (d[1] - c[1]) / (d[0] - c[0])
+                        
+                        avg = (abs(AB_slope) + abs(CD_slope)) / 2
+                        diff = abs((abs(AB_slope) - abs(CD_slope)) / avg) * 100
+
+                        self.diff_to_show = round(diff,1)
+
+                        # Coordinate of the corner
+                        corner_coords = (int(image.shape[1] * 0.8), int(image.shape[0] * 0.15))
+                        (text_width, text_height), _ = cv2.getTextSize(str(diff), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+                        background_start = (corner_coords[0] - 5, corner_coords[1] - text_height - 5)
+                        background_end = (corner_coords[0] + text_width + 5, corner_coords[1] + 5)
+
+                        # Draw the background
+                        cv2.rectangle(image, background_start, background_end, (255,255,255), -1)
+
+                        if (diff > -5 and diff < 5) : 
+
+                            cv2.putText(image, str(self.diff_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                            
+                        else :
+                            cv2.putText(image, str(self.diff_to_show), 
+                                            corner_coords,  
+                                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                
+                    
                 except:
                     pass
                 
@@ -382,3 +528,4 @@ if __name__ == "__main__":
     window = ctk.CTk()
     app = ExerciseApp(window)
     window.mainloop()
+
