@@ -19,8 +19,8 @@ For the moment, the most relevant example is the angle calculation. The value of
 
 To find out which features will be viewed on your webcam, you need to complete the document [Instructions](Instructions.xlsx)
  so that for each exercise, only the important features are analysed.
-To complete the document, first enter the name of the feature in the '1st feature' column, then the data to be analysed according to the data available (to find out what can be analysed, you can look at the different sheets in the [Instructions](Instructions.xslx) and then the value of the feature.
+To complete the document, first enter the name of the feature in the '1st feature' column, then the data to be analysed according to the data available (to find out what can be analysed, you can look at the different sheets in the [Instructions](Instructions.xlsx) ) and then the value of the feature.
 
-For now, none of the exercises has really been completed. But you can fill in the document with the help of the document [Features](Features.xlsx) because in the *exercises* sheet all the exercises are listed with the feature to look at for each of them.
+For now, none of the exercises has really been completed. But you can fill in the document with the help of the document [Features](Features.xlsx) because in the *Exercises* sheet all the exercises are listed with the feature to look at for each of them.
 
 Moreover, only the angle, distance and parallelism can be displayed on the screen and may require feedback. It would be necessary to add the code for alignment and calculating the same coordinate in order to be able to use all the necessary features.
